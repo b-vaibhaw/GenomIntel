@@ -34,23 +34,52 @@ st.markdown("""
         background-color: #0f1116;
         color: #e2e8f0;
     }
+    /* Tab track container styling */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
+        gap: 12px;
+        background-color: #111827;
+        padding: 8px 12px;
+        border-radius: 50px;
+        border: 1px solid #1f2937;
+        margin-bottom: 25px;
+        overflow-x: auto !important;
+        white-space: nowrap !important;
     }
+    /* Tab track underline - hide default tab bar line */
+    .stTabs [data-baseweb="tab-highlight-container"] {
+        display: none !important;
+    }
+    .stTabs [data-baseweb="tab-border"] {
+        display: none !important;
+    }
+    /* Individual pill tab styling */
     .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        white-space: pre-wrap;
-        background-color: #1e293b;
-        border-radius: 4px 4px 0px 0px;
-        gap: 2px;
-        padding-top: 10px;
-        padding-bottom: 10px;
-        color: #94a3b8;
+        height: auto !important;
+        white-space: nowrap !important;
+        background-color: #1f2937 !important;
+        border: 1px solid #374151 !important;
+        border-radius: 30px !important;
+        padding: 10px 24px !important;
+        color: #9ca3af !important;
+        font-weight: 500 !important;
+        font-size: 14px !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
+    /* Hover effect */
+    .stTabs [data-baseweb="tab"]:hover {
+        color: #f3f4f6 !important;
+        background-color: #374151 !important;
+        border-color: #4b5563 !important;
+        transform: translateY(-1px);
+    }
+    /* Active selected tab with premium gradient and glow */
     .stTabs [aria-selected="true"] {
-        background-color: #3b82f6 !important;
-        color: white !important;
-        font-weight: bold;
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+        color: #ffffff !important;
+        font-weight: 600 !important;
+        border-color: #60a5fa !important;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+        transform: scale(1.02);
     }
     div[data-testid="metric-container"] {
         background-color: #1e293b;
