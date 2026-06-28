@@ -1,0 +1,120 @@
+# BioIntelligence Platform — Apache Superset Datasets Configuration
+# Documents virtual datasets registered in Apache Superset for interactive analytics
+
+datasets:
+  - name: pca_embeddings
+    datasource_type: table
+    schema: public
+    source_view: pca_embeddings
+    description: "Principal Component Analysis embeddings mapped to subject demographics."
+    columns:
+      - emb_id: "Primary key for PCA embedding record"
+      - subject_id: "Unique subject pseudonymized identifier"
+      - embedding_type: "Type of embedding (e.g., 'ancestry')"
+      - pc1: "First principal component"
+      - pc2: "Second principal component"
+      - pc3: "Third principal component"
+      - pc4: "Fourth principal component"
+      - pc5: "Fifth principal component"
+      - explained_variance_ratio: "Variance captured by this principal component"
+      - computed_at: "Timestamp when PCA was run"
+      - cohort: "Dataset source identifier (e.g., '1000G')"
+      - super_population: "Coarse population group from metadata"
+      - sex: "Biological sex (M/F/U)"
+      - age_at_enrolment: "Chronological age of subject at enrolment/scan"
+
+  - name: brain_morphometry
+    datasource_type: table
+    schema: public
+    source_view: brain_morphometry_wide
+    description: "Wide-format brain region volume and cortical thickness metrics."
+    columns:
+      - morph_id: "Subject ID acting as unique identifier for pivoted record"
+      - subject_id: "Unique subject identifier"
+      - age_at_scan: "Chronological age at MRI scanning"
+      - cohort: "Cohort source dataset (e.g., 'IXI', 'OASIS3')"
+      - lh_frontal_vol_mm3: "Left frontal lobe volume"
+      - rh_frontal_vol_mm3: "Right frontal lobe volume"
+      - lh_temporal_vol_mm3: "Left temporal lobe volume"
+      - rh_temporal_vol_mm3: "Right temporal lobe volume"
+      - lh_parietal_vol_mm3: "Left parietal lobe volume"
+      - rh_parietal_vol_mm3: "Right parietal lobe volume"
+      - lh_occipital_vol_mm3: "Left occipital lobe volume"
+      - rh_occipital_vol_mm3: "Right occipital lobe volume"
+      - hippocampus_lh_vol_mm3: "Left hippocampus volume"
+      - hippocampus_rh_vol_mm3: "Right hippocampus volume"
+      - amygdala_lh_vol_mm3: "Left amygdala volume"
+      - amygdala_rh_vol_mm3: "Right amygdala volume"
+      - total_intracranial_vol_mm3: "Estimated total intracranial volume"
+      - wm_vol_mm3: "Total white matter volume"
+      - processed_at: "Timestamp of FastSurfer completion"
+
+  - name: genomic_vars
+    datasource_type: table
+    schema: public
+    source_view: genomic_vars
+    description: "Annotated genetic variants including ClinVar significance and gnomAD frequencies."
+    columns:
+      - var_id: "Genomic variant unique identifier (chrom:pos:ref:alt)"
+      - subject_id: "Carrier subject identifier"
+      - chrom: "Chromosome identifier"
+      - pos: "Genomic coordinate position (GRCh38)"
+      - ref: "Reference allele"
+      - alt: "Alternative/mutant allele"
+      - gene_symbol: "HGNC Gene symbol"
+      - consequence: "Functional consequence (e.g., missense, stop_gained)"
+      - clinvar_sig: "ClinVar clinical significance classification"
+      - gnomad_af: "gnomAD global allele frequency"
+      - gnomad_af_eur: "gnomAD European allele frequency"
+      - gnomad_af_afr: "gnomAD African allele frequency"
+      - gnomad_af_sas: "gnomAD South Asian allele frequency"
+      - gnomad_af_eas: "gnomAD East Asian allele frequency"
+      - ingested_at: "Ingestion pipeline timestamp"
+
+  - name: dna_model_predictions
+    datasource_type: table
+    schema: public
+    source_table: dna_model_predictions
+    description: "Local DNA foundation model embeddings and predictions."
+    columns:
+      - pred_id: "Unique prediction identifier"
+      - var_id: "Associated variant identifier"
+      - model_name: "DNA model name (e.g., 'DNABERT-2')"
+      - pred_score: "Pathogenicity probability / cosine similarity score"
+      - embedding_norm: "L2 norm of the CLS token embedding"
+      - context_window_bp: "DNA window size used for inference"
+      - predicted_at: "Timestamp of inference run"
+
+  - name: pipeline_runs
+    datasource_type: table
+    schema: public
+    source_table: pipeline_runs
+    description: "Orchestration pipeline execution auditing and performance metrics."
+    columns:
+      - run_id: "Unique execution identifier"
+      - dag_id: "Airflow DAG identifier"
+      - run_id_airflow: "Airflow run ID (e.g., manual__2026-06-26)"
+      - status: "Pipeline execution status (running/success/failed)"
+      - started_at: "Start timestamp"
+      - finished_at: "Completion timestamp"
+      - duration_seconds: "Execution duration in seconds"
+      - input_hash: "Hash of raw input files used to verify idempotency"
+      - operator_identity: "Machine/Worker identifier running the task"
+      - error_message: "Error traceback if task failed"
+
+  - name: brain_age_predictions
+    datasource_type: table
+    schema: public
+    source_view: brain_age_predictions
+    description: "Brain age estimation from neuroimaging morphometry features."
+    columns:
+      - ba_pred_id: "Unique brain age prediction identifier"
+      - subject_id: "Subject pseudonymized identifier"
+      - chronological_age: "Chronological age at scan time"
+      - brain_age_predicted: "Predicted brain age from ridge regression model"
+      - brain_age_delta: "Estimated brain age delta (predicted - chronological)"
+      - model_name: "Brain age predictor model name"
+      - predicted_at: "Timestamp of prediction calculation"
+      - cohort: "Source dataset cohort identifier"
+      - super_population: "Demographic cohort identifier"
+      - sex: "Biological sex"

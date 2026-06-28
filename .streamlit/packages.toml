@@ -1,0 +1,4 @@
+[install]
+# Use CPU-only PyTorch to save ~1.5 GB of memory on Streamlit Cloud
+# The genomic model is lightweight enough for CPU-only inference
+extra_pip_packages = ["torch --index-url https://download.pytorch.org/whl/cpu"]

@@ -1,0 +1,174 @@
+# BioIntelligence Platform -- Model Registry
+# All models are free, open-source, HuggingFace hosted (except FastSurfer: GitHub/Docker)
+# Local inference only -- no API calls
+# This file is read by: llm_narrative.py, dna_model_inference.py, pipeline orchestrator
+#
+# Key conventions:
+#   hf_id       : HuggingFace model identifier (used for download + citation)
+#   local_dir   : path where weights are cached on disk
+#   task        : HuggingFace pipeline task string
+#   device      : 'auto' selects CUDA if available, else CPU
+#   quantization: '4bit' uses BitsAndBytesConfig NF4; 'none' = fp32/fp16
+
+models:
+  dna:
+    - name: DNABERT-2
+      hf_id: zhihan1996/DNABERT-2-117M
+      local_dir: /opt/biointel/models/dnabert2
+      task: feature-extraction
+      context_length: 512
+      embedding_dim: 768
+      device: auto          # auto selects cuda if available, else cpu
+      batch_size: 32
+      quantization: none    # DNABERT-2 is small enough to run in fp32
+      description: "Bidirectional DNA language model, 117M params, trained on multi-species genomes"
+      citation: "Zhou et al., 2023. DNABERT-2: Efficient Foundation Model and Benchmark for Multi-Species Genome."
+      url: "https://huggingface.co/zhihan1996/DNABERT-2-117M"
+      embedding_output: cls_token  # CLS token hidden state used as sequence embedding
+
+    - name: HyenaDNA
+      hf_id: LongSafari/hyenadna-small-32k-seqlen-hf
+      local_dir: /opt/biointel/models/hyenadna
+      task: feature-extraction
+      context_length: 32768
+      embedding_dim: 256
+      device: auto
+      batch_size: 8          # smaller batch due to 32k context memory
+      quantization: none
+      description: "Long-range DNA model with 32k token context, based on Hyena operator"
+      citation: "Nguyen et al., 2023. HyenaDNA: Long-Range Genomic Sequence Modeling at Single Nucleotide Resolution."
+      url: "https://huggingface.co/LongSafari/hyenadna-small-32k-seqlen-hf"
+      embedding_output: mean_pool  # mean pooling over all token positions
+
+  mri:
+    - name: FastSurfer
+      docker_image: deepmi/fastsurfer:cpu
+      docker_image_gpu: deepmi/fastsurfer:latest
+      task: whole-brain-segmentation
+      inputs:
+        - T1w_NIfTI          # T1-weighted MRI in NIfTI format (.nii / .nii.gz)
+      outputs:
+        - aseg.stats          # whole-brain parcellation volume stats
+        - lh.aparc.stats      # left hemisphere cortical parcellation (Desikan-Killiany)
+        - rh.aparc.stats      # right hemisphere cortical parcellation
+        - brain.finalsurfs.mgz
+        - mri/norm.mgz
+      runtime:
+        cpu_hours_per_subject: 1.0   # approximate on 4-core CPU
+        gpu_minutes_per_subject: 8   # approximate on NVIDIA A100
+      description: "Deep learning whole-brain segmentation in ~1h CPU or ~8min GPU; FreeSurfer-compatible outputs"
+      citation: "Henschel et al., 2020. FastSurfer - A fast and accurate deep learning based neuroimaging pipeline."
+      url: "https://github.com/Deep-MI/FastSurfer"
+      license: Apache-2.0
+
+  llm:
+    - name: BioMistral-7B
+      hf_id: BioMistral/BioMistral-7B
+      local_dir: /opt/biointel/models/biomistral7b
+      task: text-generation
+      role: clinical_narrative   # Primary role: biomedical / clinical research text
+      context_length: 4096
+      quantization: 4bit         # BitsAndBytesConfig NF4 4-bit
+      device: auto
+      max_new_tokens: 512
+      temperature: 0.3           # low temperature for factual clinical language
+      top_p: 0.9
+      repetition_penalty: 1.1
+      description: "Mistral-7B-v0.1 fine-tuned on 2.1B PubMed tokens; strong biomedical domain performance"
+      citation: "Labrak et al., 2024. BioMistral: A Collection of Open-Source Pretrained Large Language Models for Medical Domains."
+      url: "https://huggingface.co/BioMistral/BioMistral-7B"
+      license: Apache-2.0
+      vram_estimate_4bit_gb: 5.5
+
+    - name: Llama-3.1-8B-Instruct
+      hf_id: meta-llama/Meta-Llama-3.1-8B-Instruct
+      local_dir: /opt/biointel/models/llama31_8b
+      task: text-generation
+      role: lay_explanation      # Primary role: accessible lay-language explanations
+      context_length: 131072     # 128k token context window
+      quantization: 4bit
+      device: auto
+      max_new_tokens: 512
+      temperature: 0.4
+      top_p: 0.9
+      repetition_penalty: 1.05
+      description: "Llama 3.1 8B instruction-tuned; general-purpose, 128k context, strong instruction following"
+      citation: "Meta AI, 2024. The Llama 3 Herd of Models."
+      url: "https://huggingface.co/meta-llama/Meta-Llama-3.1-8B-Instruct"
+      license: "Llama 3.1 Community License (free for research and commercial use <700M MAU)"
+      note: "Requires HuggingFace account and acceptance of Meta Llama 3.1 license (free; approve at https://huggingface.co/meta-llama/Meta-Llama-3.1-8B-Instruct)"
+      vram_estimate_4bit_gb: 6.0
+
+    - name: Qwen3-8B
+      hf_id: Qwen/Qwen3-8B
+      local_dir: /opt/biointel/models/qwen3_8b
+      task: text-generation
+      role: structured_reasoning   # Primary role: JSON output and step-by-step reasoning
+      context_length: 32768
+      quantization: 4bit
+      device: auto
+      max_new_tokens: 256          # compact for JSON; increase for long reasoning chains
+      temperature: 0.1             # very low temperature for deterministic structured output
+      top_p: 0.8
+      repetition_penalty: 1.0
+      thinking_mode: false         # set true to enable Qwen3 extended reasoning chain
+      description: "Qwen3 8B; excellent structured output (JSON), math, and reasoning; 32k context"
+      citation: "Qwen Team, 2025. Qwen3 Technical Report."
+      url: "https://huggingface.co/Qwen/Qwen3-8B"
+      license: Apache-2.0
+      vram_estimate_4bit_gb: 5.5
+
+# ---------------------------------------------------------------------------
+# Ensemble strategy for LLM narrative generation
+# ---------------------------------------------------------------------------
+ensemble_strategy:
+  mode: role_based               # Each model plays a distinct, non-overlapping role
+  combination: narrative_merger  # Final output = BioMistral + Llama text concatenation
+                                 # + Qwen JSON stored separately in DB
+
+  # Conceptual weights (used in model_transparency logging, not for output blending)
+  biomistral_weight: 0.5         # Highest weight: clinical/biomedical authoritative content
+  llama_weight: 0.3              # Lay explanation, accessibility
+  qwen_weight: 0.2               # Structured reasoning, machine-readable JSON summary
+
+  prompting:
+    biomistral_role: "primary clinical narrative"
+    llama_role: "accessible lay summary"
+    qwen_role: "structured JSON data extraction"
+
+  quality_filters:
+    min_output_length_chars: 50  # Reject outputs shorter than 50 chars (likely hallucination/refusal)
+    max_repetition_ratio: 0.3    # Reject if >30% of output is repeated n-grams
+
+# ---------------------------------------------------------------------------
+# Hardware requirements summary
+# ---------------------------------------------------------------------------
+hardware:
+  minimum_cpu_only:
+    ram_gb: 32
+    disk_gb: 100                  # all models + reference genome
+    note: "CPU-only inference is very slow for 7-8B LLMs; use for testing only"
+
+  recommended_gpu:
+    vram_gb: 24                   # e.g. NVIDIA RTX 3090 / 4090 / A10G
+    ram_gb: 32
+    disk_gb: 200
+    note: "Run all 3 LLMs simultaneously in 4-bit on 24GB VRAM"
+
+  production_gpu:
+    vram_gb: 40                   # e.g. NVIDIA A100 40GB
+    ram_gb: 64
+    disk_gb: 500
+    note: "Recommended for batch pipeline runs on large cohorts (>1000 subjects)"
+
+# ---------------------------------------------------------------------------
+# Download instructions
+# ---------------------------------------------------------------------------
+download:
+  hf_cache_dir: /opt/biointel/models
+  hf_token_env: HF_TOKEN          # Required for Llama-3.1; optional for others
+  pre_download_script: scripts/download_models.sh
+  notes:
+    - "Run 'huggingface-cli login' or set HF_TOKEN env var before downloading Llama-3.1-8B"
+    - "FastSurfer is pulled via Docker: docker pull deepmi/fastsurfer:cpu"
+    - "All other models can be downloaded with: huggingface-cli download <hf_id>"

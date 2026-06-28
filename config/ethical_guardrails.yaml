@@ -1,0 +1,54 @@
+# BioIntelligence Platform — Ethical Guardrails
+# Machine-readable rules enforced by all pipeline scripts and LLM prompts
+
+disclaimers:
+  research_use_only: >
+    RESEARCH USE ONLY: This analysis is for research purposes only and does NOT
+    constitute a clinical diagnosis, medical advice, or genetic counseling.
+    
+  ancestry_disclaimer: >
+    IMPORTANT: Ancestry principal components (PCs) are continuous mathematical
+    scores capturing genetic similarity to reference populations. They are NOT
+    racial categories, racial classifications, or proxies for race. They reflect
+    complex patterns of genetic variation shaped by population history.
+    
+  mri_disclaimer: >
+    MRI-based brain age estimates are RESEARCH TOOLS only. They do not diagnose
+    neurodegenerative disease, cognitive decline, or any clinical condition.
+    Always consult a qualified neuroradiologist or neurologist for clinical interpretation.
+    
+  confidence_interval_notice: >
+    All statistical estimates include 95% confidence intervals. Effect sizes below
+    |r| < 0.1 are considered negligible regardless of statistical significance.
+    All associations require independent replication in diverse cohorts.
+
+reporting_requirements:
+  always_include:
+    - sample_size_n  # Always report n
+    - confidence_interval_95  # Always report 95% CI
+    - replication_disclaimer  # Results need replication
+    - dataset_source  # Which dataset was used
+  statistical:
+    minimum_n_for_correlation: 30
+    significance_threshold_fdr: 0.05
+    effect_size_minimum_reportable: 0.05  # |r| >= 0.05
+    multiple_testing_correction: fdr_bh
+
+privacy:
+  subject_ids: pseudonymized_only
+  no_pii_in_narratives: true
+  no_pii_in_db: true
+  allowed_identifiers: [subject_id, dataset_source]
+
+forbidden_outputs:
+  - racial_classification
+  - clinical_diagnosis
+  - medical_prescription
+  - individual_risk_score_without_ci
+  - deterministic_disease_prediction
+
+model_transparency:
+  always_log_model_name: true
+  always_log_model_version: true
+  always_log_n_training_subjects: true
+  always_log_generation_params: true
