@@ -76,11 +76,11 @@ st.sidebar.info("This interactive interface visualizes local genomic, neuroimagi
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("🔬 User Workspace Pages")
-st.sidebar.markdown(
-    "- **[Interactive Lab](/Interactive_Lab)**: Upload your own VCF or CSV inputs to run predictions.\n"
-    "- **[Analysis History](/Analysis_History)**: View, download, or delete past session runs.\n"
-    "- **[Comparison View](/Comparison_View)**: Side-by-side analysis comparison charts."
-)
+st.sidebar.page_link("app.py", label="Main Dashboard", icon="🏠")
+st.sidebar.page_link("pages/1_Interactive_Lab.py", label="Interactive Lab", icon="🔬")
+st.sidebar.page_link("pages/2_Analysis_History.py", label="Analysis History", icon="📜")
+st.sidebar.page_link("pages/3_Comparison_View.py", label="Comparison View", icon="⚖️")
+st.sidebar.markdown("---")
 
 
 
