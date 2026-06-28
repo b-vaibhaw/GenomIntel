@@ -143,10 +143,13 @@ else:
         st.error("⚠️ Selected analyses must be of the same type to compare (e.g. both Brain Age or both Genetics).")
     elif selected_id1 == selected_id2:
         st.warning("Please choose two different runs to perform comparison.")
-    else:
         # Load JSON results
-        res1 = json.loads(row1["result_json"])
-        res2 = json.loads(row2["result_json"])
+        try:
+            res1 = json.loads(row1["result_json"])
+            res2 = json.loads(row2["result_json"])
+        except (json.JSONDecodeError, TypeError):
+            st.error("⚠️ Failed to parse analysis results. This is usually caused by an incorrect encryption key in Streamlit Secrets. Please verify your secrets configuration.")
+            st.stop()
         
         # Display side-by-side details
         st.markdown("<br/>", unsafe_allow_html=True)

@@ -195,9 +195,13 @@ else:
                 
                 with col_info:
                     st.subheader("Data Summary")
-                    result_obj = json.loads(row["result_json"])
+                    try:
+                        result_obj = json.loads(row["result_json"])
+                    except (json.JSONDecodeError, TypeError):
+                        st.error("⚠️ Failed to parse analysis details. (Check decryption key)")
+                        result_obj = {}
                     
-                    if db_type == "brain_age":
+                    if db_type == "brain_age" and result_obj:
                         st.write(f"**Chronological Age:** {result_obj.get('chronological_age')} years")
                         st.write(f"**Sex:** {result_obj.get('sex')}")
                         st.write(f"**Predicted Brain Age:** {result_obj.get('brain_age_predicted')} years")
