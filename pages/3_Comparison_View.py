@@ -136,47 +136,79 @@ else:
     row1 = all_analyses_df[all_analyses_df["analysis_id"] == selected_id1].iloc[0]
     row2 = all_analyses_df[all_analyses_df["analysis_id"] == selected_id2].iloc[0]
     
+    # Load JSON results
+    try:
+        res1 = json.loads(row1["result_json"])
+        res2 = json.loads(row2["result_json"])
+    except (json.JSONDecodeError, TypeError):
+        st.error("⚠️ Failed to parse analysis results. This is usually caused by an incorrect encryption key in Streamlit Secrets. Please verify your secrets configuration.")
+        st.stop()
+        
+    # Helper to render single column
+    def render_analysis_column(row, res, label_prefix="Run"):
+        st.subheader(f"{label_prefix}: {row['subject_label']}")
+        st.write(f"**Session:** {row['session_name']}")
+        st.write(f"**Created At:** {row['created_at'].split('.')[0].replace('T', ' ')}")
+        
+        analysis_type = row["analysis_type"]
+        if analysis_type == "brain_age":
+            st.info("🧠 Brain Age Prediction")
+            m1, m2, m3 = st.columns(3)
+            m1.metric("Chronological Age", f"{res.get('chronological_age', 0.0):.1f} yrs")
+            m2.metric("Predicted Brain Age", f"{res.get('brain_age_predicted', 0.0):.1f} yrs")
+            m3.metric("Gap (Delta)", f"{res.get('brain_age_delta', 0.0):+.1f} yrs")
+            
+            st.markdown("**MRI Regional Volumes:**")
+            vols = res.get("brain_volumes", {})
+            for k, v in vols.items():
+                st.text(f"  {k.replace('_', ' ').title()}: {v:,} mm³")
+                
+        elif analysis_type == "variant_annotation":
+            st.info("🧬 Genetics Annotation")
+            m1, m2 = st.columns(2)
+            m1.metric("Total Mapped Variants", f"{res.get('total_variants', 0)}")
+            m2.metric("Pathogenic / Likely Pathogenic", f"{res.get('pathogenic_count', 0)}")
+            
+            st.markdown("**ClinVar Distributions:**")
+            counts = res.get("counts", {})
+            for k, v in counts.items():
+                st.text(f"  {k}: {v}")
+                
+        elif analysis_type == "dna_embedding":
+            st.info("💻 DNA Pathogenicity AI Inference")
+            st.write(f"**Model Choice:** {res.get('model_name', 'Unknown')}")
+            m1, m2 = st.columns(2)
+            m1.metric("Prediction Label", f"{res.get('pred_label', 'N/A')}")
+            m2.metric("Pathogenicity Score", f"{res.get('pred_score', 0.0):.4f}")
+            st.write(f"**Pathogenic Similarity:** {res.get('sim_pathogenic', 0.0):.1%}")
+            st.write(f"**Benign Similarity:** {res.get('sim_benign', 0.0):.1%}")
+
+    # Notice if same run is selected
+    if selected_id1 == selected_id2:
+        st.info("💡 You are viewing the same run on both sides. Select a different run to perform comparison.")
+
     if row1["analysis_type"] != row2["analysis_type"]:
-        st.error("⚠️ Selected analyses must be of the same type to compare (e.g. both Brain Age or both Genetics).")
-    elif selected_id1 == selected_id2:
-        st.warning("Please choose two different runs to perform comparison.")
-        # Load JSON results
-        try:
-            res1 = json.loads(row1["result_json"])
-            res2 = json.loads(row2["result_json"])
-        except (json.JSONDecodeError, TypeError):
-            st.error("⚠️ Failed to parse analysis results. This is usually caused by an incorrect encryption key in Streamlit Secrets. Please verify your secrets configuration.")
-            st.stop()
+        st.warning("⚠️ Note: You are comparing two different analysis types (e.g. Brain Age vs Genetics). Direct comparison charts are disabled, but side-by-side details are shown below.")
+
+    # Display side-by-side details
+    st.markdown("<br/>", unsafe_allow_html=True)
+    col_res1, col_res2 = st.columns(2)
+    
+    with col_res1:
+        render_analysis_column(row1, res1, label_prefix="Run A")
         
-        # Display side-by-side details
-        st.markdown("<br/>", unsafe_allow_html=True)
-        col_res1, col_res2 = st.columns(2)
+    with col_res2:
+        render_analysis_column(row2, res2, label_prefix="Run B")
+
+    st.markdown("---")
+
+    # ---------------------------------------------------------------------
+    # SAME-TYPE COMPARISON CHARTS
+    # ---------------------------------------------------------------------
+    if row1["analysis_type"] == row2["analysis_type"]:
         
-        # ---------------------------------------------------------------------
-        # BRAIN AGE COMPARISON
-        # ---------------------------------------------------------------------
+        # 1. BRAIN AGE COMPARISON CHART
         if row1["analysis_type"] == "brain_age":
-            with col_res1:
-                st.subheader(f"Run A: {row1['subject_label']}")
-                st.write(f"**Session:** {row1['session_name']}")
-                st.write(f"**Created At:** {row1['created_at'].split('.')[0].replace('T', ' ')}")
-                
-                m1_1, m1_2, m1_3 = st.columns(3)
-                m1_1.metric("Chronological Age", f"{res1.get('chronological_age'):.1f} yrs")
-                m1_2.metric("Predicted Brain Age", f"{res1.get('brain_age_predicted'):.1f} yrs")
-                m1_3.metric("Gap (Delta)", f"{res1.get('brain_age_delta'):+.1f} yrs")
-                
-            with col_res2:
-                st.subheader(f"Run B: {row2['subject_label']}")
-                st.write(f"**Session:** {row2['session_name']}")
-                st.write(f"**Created At:** {row2['created_at'].split('.')[0].replace('T', ' ')}")
-                
-                m2_1, m2_2, m2_3 = st.columns(3)
-                m2_1.metric("Chronological Age", f"{res2.get('chronological_age'):.1f} yrs")
-                m2_2.metric("Predicted Brain Age", f"{res2.get('brain_age_predicted'):.1f} yrs")
-                m2_3.metric("Gap (Delta)", f"{res2.get('brain_age_delta'):+.1f} yrs")
-                
-            st.markdown("---")
             st.subheader("MRI Regional Brain Volumes Comparison (mm³)")
             
             # Form comparison DataFrame
@@ -188,12 +220,12 @@ else:
                 comparison_rows.append({
                     "Region": region.replace("_", " ").title(),
                     "Volume (mm³)": vols1.get(region, 0),
-                    "Subject": row1["subject_label"]
+                    "Subject": f"Run A: {row1['subject_label']}"
                 })
                 comparison_rows.append({
                     "Region": region.replace("_", " ").title(),
                     "Volume (mm³)": vols2.get(region, 0),
-                    "Subject": row2["subject_label"]
+                    "Subject": f"Run B: {row2['subject_label']}"
                 })
             df_vols = pd.DataFrame(comparison_rows)
             
@@ -210,28 +242,8 @@ else:
             fig.update_layout(template="plotly_dark", height=450)
             st.plotly_chart(fig, use_container_width=True)
             
-        # ---------------------------------------------------------------------
-        # VARIANT ANNOTATION COMPARISON
-        # ---------------------------------------------------------------------
+        # 2. VARIANT ANNOTATION COMPARISON CHART
         elif row1["analysis_type"] == "variant_annotation":
-            with col_res1:
-                st.subheader(f"Run A: {row1['subject_label']}")
-                st.write(f"**Session:** {row1['session_name']}")
-                
-                m1_1, m1_2 = st.columns(2)
-                m1_1.metric("Total Mapped Variants", f"{res1.get('total_variants')}")
-                m1_2.metric("Pathogenic / Likely Pathogenic", f"{res1.get('pathogenic_count')}")
-                
-            with col_res2:
-                st.subheader(f"Run B: {row2['subject_label']}")
-                st.write(f"**Session:** {row2['session_name']}")
-                
-                m2_1, m2_2 = st.columns(2)
-                m2_1.metric("Total Mapped Variants", f"{res2.get('total_variants')}")
-                m2_2.metric("Pathogenic / Likely Pathogenic", f"{res2.get('pathogenic_count')}")
-                
-            st.markdown("---")
-            
             # Intersect and find shared variants
             vars1 = {v["variant_id"]: v for v in res1.get("variants", [])}
             vars2 = {v["variant_id"]: v for v in res2.get("variants", [])}
@@ -265,12 +277,12 @@ else:
                 dist_rows.append({
                     "Classification": cls_lbl,
                     "Count": counts1.get(cls_lbl, 0),
-                    "Subject": row1["subject_label"]
+                    "Subject": f"Run A: {row1['subject_label']}"
                 })
                 dist_rows.append({
                     "Classification": cls_lbl,
                     "Count": counts2.get(cls_lbl, 0),
-                    "Subject": row2["subject_label"]
+                    "Subject": f"Run B: {row2['subject_label']}"
                 })
             df_dist = pd.DataFrame(dist_rows)
             
@@ -286,27 +298,8 @@ else:
             fig.update_layout(template="plotly_dark", height=400)
             st.plotly_chart(fig, use_container_width=True)
 
-        # ---------------------------------------------------------------------
-        # DNA EMBEDDING COMPARISON
-        # ---------------------------------------------------------------------
+        # 3. DNA EMBEDDING COMPARISON CHART
         elif row1["analysis_type"] == "dna_embedding":
-            with col_res1:
-                st.subheader(f"Run A: {row1['subject_label']}")
-                st.write(f"**Model Choice:** {res1.get('model_name')}")
-                
-                m1_1, m1_2 = st.columns(2)
-                m1_1.metric("Prediction Label", f"{res1.get('pred_label')}")
-                m1_2.metric("Pathogenicity Score", f"{res1.get('pred_score'):.4f}")
-                
-            with col_res2:
-                st.subheader(f"Run B: {row2['subject_label']}")
-                st.write(f"**Model Choice:** {res2.get('model_name')}")
-                
-                m2_1, m2_2 = st.columns(2)
-                m2_1.metric("Prediction Label", f"{res2.get('pred_label')}")
-                m2_2.metric("Pathogenicity Score", f"{res2.get('pred_score'):.4f}")
-                
-            st.markdown("---")
             st.subheader("Embeddings Latent Space Location")
             
             # Map selected models
@@ -341,8 +334,8 @@ else:
                 
                 # Point 1
                 fig.add_trace(go.Scatter(
-                    x=[res1["pca_dim1"]],
-                    y=[res1["pca_dim2"]],
+                    x=[res1.get("pca_dim1", 0.0)],
+                    y=[res1.get("pca_dim2", 0.0)],
                     mode="markers+text",
                     name=f"Run A: {row1['subject_label']}",
                     text=[row1['subject_label']],
@@ -352,8 +345,8 @@ else:
                 
                 # Point 2
                 fig.add_trace(go.Scatter(
-                    x=[res2["pca_dim1"]],
-                    y=[res2["pca_dim2"]],
+                    x=[res2.get("pca_dim1", 0.0)],
+                    y=[res2.get("pca_dim2", 0.0)],
                     mode="markers+text",
                     name=f"Run B: {row2['subject_label']}",
                     text=[row2['subject_label']],
@@ -376,23 +369,23 @@ else:
             sim_rows = [
                 {
                     "Metric": "Similarity to Pathogenic",
-                    "Score": res1.get("sim_pathogenic"),
-                    "Subject": row1["subject_label"]
+                    "Score": res1.get("sim_pathogenic", 0.0),
+                    "Subject": f"Run A: {row1['subject_label']}"
                 },
                 {
                     "Metric": "Similarity to Pathogenic",
-                    "Score": res2.get("sim_pathogenic"),
-                    "Subject": row2["subject_label"]
+                    "Score": res2.get("sim_pathogenic", 0.0),
+                    "Subject": f"Run B: {row2['subject_label']}"
                 },
                 {
                     "Metric": "Similarity to Benign",
-                    "Score": res1.get("sim_benign"),
-                    "Subject": row1["subject_label"]
+                    "Score": res1.get("sim_benign", 0.0),
+                    "Subject": f"Run A: {row1['subject_label']}"
                 },
                 {
                     "Metric": "Similarity to Benign",
-                    "Score": res2.get("sim_benign"),
-                    "Subject": row2["subject_label"]
+                    "Score": res2.get("sim_benign", 0.0),
+                    "Subject": f"Run B: {row2['subject_label']}"
                 }
             ]
             df_sim = pd.DataFrame(sim_rows)
@@ -408,3 +401,4 @@ else:
             )
             fig_sim.update_layout(template="plotly_dark", height=400)
             st.plotly_chart(fig_sim, use_container_width=True)
+
