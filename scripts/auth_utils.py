@@ -268,14 +268,23 @@ def check_authentication():
         st.session_state["authenticated"] = False
         st.session_state["username"] = None
 
+    # Hide default Streamlit sidebar navigation globally (we use custom st.page_link widgets)
+    st.markdown(
+        """
+        <style>
+            [data-testid="stSidebarNav"] {
+                display: none !important;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
     if not st.session_state["authenticated"]:
-        # Custom CSS to hide default page navigation links
+        # Custom CSS when not authenticated
         st.markdown(
             """
             <style>
-                [data-testid="stSidebarNav"] {
-                    display: none !important;
-                }
                 .main {
                     background-color: #0f1116;
                     color: #e2e8f0;
